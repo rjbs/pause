@@ -35,6 +35,7 @@ if ($USE_RECENTFILE_HOOKS) {
   }
 }
 our $IS_PAUSE_US = Sys::Hostname::hostname =~ /pause2/ ? 1 : 0;
+our $Id = "PAUSE version $PAUSE::VERSION";
 
 use strict;
 use vars qw(@ISA @EXPORT_OK $VERSION $Config);

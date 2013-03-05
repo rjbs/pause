@@ -49,7 +49,6 @@ use DB_File;
 use Fcntl qw(O_RDWR O_CREAT);
 use File::Find;
 use File::Path qw(rmtree mkpath);
-our $Id = "PAUSE version $PAUSE::VERSION";
 our $MAINTAIN_SYMLINKTREE = 1;
 
 use Fcntl qw(:flock);
@@ -114,28 +113,8 @@ sub sleep {
 }
 
 sub verbose {
-    my($self,$level,@what) = @_;
-    unless (@what) {
-        @what = ("warning: verbose called without \@what: ", $level);
-        $level = 1;
-    }
-    return if $level > $self->{VERBOSE};
-    unless (exists $self->{INTRODUCED}) {
-        my $now = scalar localtime;
-        require Data::Dumper;
-        unshift @what, "Running $0, $Id, $now",
-            Data::Dumper->new([$self],[qw()])->Indent(1)->Useqq(1)->Dump;
-        $self->{INTRODUCED} = undef;
-    }
-    push @what, "\n" unless $what[-1] =~ m{\n$};
-    my $logfh;
-    if (my $logfile = $self->{OPT}{logfile}) {
-        open $logfh, ">>", $logfile or die;
-        unshift @what, scalar localtime;
-    } else {
-        $logfh = *STDOUT;
-    }
-    print $logfh @what;
+    my ($self, $level, @what) = @_;
+    PAUSE->log($self, $level, @what);
 }
 
 sub reindex {
@@ -474,7 +453,7 @@ sub check_for_new {
                   content_type => 'text/plain',
                   encoding     => 'quoted-printable',
                 },
-                body_str => join(qq{\n\n}, "Not indexed.\n\n\t$Id", $alert),
+                body_str => join(qq{\n\n}, "Not indexed.\n\n\t$PAUSE::Id", $alert),
             );
 
             sendmail($email);
@@ -574,7 +553,7 @@ URL:          http://www.perl.com/CPAN/modules/02packages.details.txt
 Description:  Package names found in directory \$CPAN/authors/id/
 Columns:      package name, version, path
 Intended-For: Automated fetch routines, namespace documentation.
-Written-By:   $Id
+Written-By:   $PAUSE::Id
 Line-Count:   $numlines
 Last-Updated: $date\n\n};
 
@@ -1100,7 +1079,7 @@ Modcount:    %d
 Written-By:  %s
 Date:        %s
 
-}, 0+@$modlist_data, $Id, $date;
+}, 0+@$modlist_data, $PAUSE::Id, $date;
 
     $list = qq!
     package CPAN::Modulelist;
@@ -1211,7 +1190,7 @@ Line-Count:  %d
 Written-By:  %s
 Date:        %s
 
-}, scalar keys %seen, $Id, $date;
+}, scalar keys %seen, $PAUSE::Id, $date;
 
     {
         for my $k (sort keys %seen) {

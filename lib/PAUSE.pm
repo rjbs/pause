@@ -37,12 +37,13 @@ if ($USE_RECENTFILE_HOOKS) {
 our $IS_PAUSE_US = Sys::Hostname::hostname =~ /pause2/ ? 1 : 0;
 
 use strict;
-use vars qw(@ISA @EXPORT_OK $VERSION $Config);
+use vars qw(@ISA @EXPORT_OK $VERSION $Config $Id);
 
 @ISA = qw(Exporter); ## no critic
 @EXPORT_OK = qw(urecord);
 
 $VERSION = "1.005";
+$Id = "PAUSE version $PAUSE::VERSION";
 
 # for Configuration Variable we use PrivatePAUSE.pm, because these are
 # really variables we cannot publish. Will separate harmless variables
@@ -100,6 +101,33 @@ $PAUSE::Config ||=
      HTTP_ERRORLOG => '/usr/local/apache/logs/error_log', # harmless use in cron-daily
      INCOMING => $IS_PAUSE_US ? 'ftp://localhost/incoming/' : 'ftp://pause.perl.org/incoming/',
      INCOMING_LOC => '/home/ftp/incoming/',
+     LOG_CALLBACK => sub {
+       # $entity: entity from which to grab log configuration
+       # $level: level by which logs are filtered
+       # @what: messages being logged
+       my($entity,$level,@what) = @_;
+       unless (@what) {
+         @what = ("warning: verbose called without \@what: ", $level);
+         $level = 1;
+       }
+       return if $level > ($entity->{VERBOSE}||0);
+       unless (exists $entity->{INTRODUCED}) {
+         my $now = scalar localtime;
+         require Data::Dumper;
+         unshift @what, "Running $0, $Id, $now",
+           Data::Dumper->new([$entity],[qw()])->Indent(1)->Useqq(1)->Dump;
+         $entity->{INTRODUCED} = undef;
+       }
+       push @what, "\n" unless $what[-1] =~ m{\n$};
+       my $logfh;
+       if (my $logfile = $entity->{OPT}{logfile}) {
+         open $logfh, ">>", $logfile or die;
+         unshift @what, scalar localtime;
+       } else {
+         $logfh = *STDOUT;
+       }
+       print $logfh @what;
+     },
      MAXRETRIES => 16,
      MIRRORCONFIG => '/usr/local/mirror/mymirror.config',
      MIRRORED_BY_URL => "ftp://ftp.funet.fi/pub/languages/perl/CPAN/MIRRORED.BY",
@@ -231,6 +259,11 @@ sub filehash {
    md5: $hexdigest
 };
   return $ret;
+}
+
+sub log {
+    my ($self, @arg) = @_;
+    $PAUSE::Config->{LOG_CALLBACK}->(@arg);
 }
 
 sub dbh {

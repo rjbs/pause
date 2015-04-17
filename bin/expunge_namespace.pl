@@ -23,17 +23,13 @@ my $dbm = DBI->connect(
 
 my $rpkg = shift or die "Usage: $0 packagename";
 
-my $sth0 = $dbm->prepare(qq{SELECT * FROM mods    WHERE modid=?});
-my $sth1 = $dbm->prepare(qq{DELETE FROM mods      WHERE modid=?});
-my $sth2 = $dbm->prepare(qq{DELETE FROM packages  WHERE package=?});
-my $sth3 = $dbm->prepare(qq{DELETE FROM perms     WHERE package=? and userid=?});
-my $sth4 = $dbm->prepare(qq{DELETE FROM primeur   WHERE package=? and userid=?});
-my $sth5 = $dbm->prepare(qq{SELECT * FROM perms   WHERE package=?});
-my $sth6 = $dbm->prepare(qq{SELECT * FROM primeur WHERE package=?});
+my $sth1 = $dbm->prepare(qq{DELETE FROM packages  WHERE package=?});
+my $sth2 = $dbm->prepare(qq{DELETE FROM perms     WHERE package=? and userid=?});
+my $sth3 = $dbm->prepare(qq{DELETE FROM primeur   WHERE package=? and userid=?});
+my $sth4 = $dbm->prepare(qq{SELECT * FROM perms   WHERE package=?});
+my $sth5 = $dbm->prepare(qq{SELECT * FROM primeur WHERE package=?});
 
 die "XXX not yet implemented";
-# Determine owner and use it for 3 and 4, at the end warn about
+# Determine owner and use it for 2 and 3, at the end warn about
 # remaning pers and primeur records
 
-
-$sth0->execute;

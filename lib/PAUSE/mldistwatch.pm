@@ -691,37 +691,9 @@ sub rewrite01 {
     } else {
         $self->verbose(1,"No 01modules exist; won't try to read it");
     }
-    my(%firstlevel,%achapter);
-    my $sth = $dbh->prepare("SELECT modid, chapterid FROM mods");
-    $sth->execute;
-    while (my($modid,$chapterid) = $sth->fetchrow_array) {
-        my($root,$colo) = $modid =~ /^([^:]+)(::)?/;
-        $firstlevel{$root}++;
-        # the determination of %achapter was introduced with rev 211.
-        # Alternatives were tried in 212 and 214, but they had
-        # uncountable misfits. 215 then was very similar to 211 but we
-        # did sort above query by chapterid and got tons of misfits.
-        # So we do not really have a solution. Every solution is
-        # wrong, even the pre-211 solution. OK, I've taken out the
-        # order by clause and retested, cheap_chapter deviates from
-        # old chapter for Exception, Sort, and User, that's all.
-        if ($colo) {
-            if (! exists $achapter{$root}) {
-                $achapter{"$root\::"} ||= $chapterid;
-            }
-        } else {
-            delete $achapter{"$root\::"};
-            $achapter{$root} ||= $chapterid;
-        }
-    }
-    my(@chaptitle);
-    $sth = $dbh->prepare("SELECT chapterid, shorttitle FROM chapters");
-    $sth->execute;
-    while (my($chapterid, $shorttitle) = $sth->fetchrow_array) {
-        $chaptitle[$chapterid] = sprintf "%02d_%s", $chapterid, $shorttitle;
-    }
+    my(%firstlevel);
 
-    $sth = $dbh->prepare("SELECT package, dist FROM packages");
+    my $sth = $dbh->prepare("SELECT package, dist FROM packages");
     $sth->execute;
     my(@listing01,%count);
     my $count = 0;
@@ -793,33 +765,16 @@ sub rewrite01 {
         }
         $pkg{readmefn} = File::Basename::basename($pkg{readme});
 
-        $pkg{chapterid} = $achapter{$pkg{rootpack}}
-            || $achapter{"$pkg{rootpack}\::"};
-
-        if (defined $pkg{chapterid}) {
-            if (defined $chaptitle[$pkg{chapterid}]) {
-                $pkg{chapter} = $chaptitle[$pkg{chapterid}]
-            } else {
-                $pkg{chapter} = "99_Not_In_Modulelist";
-                $self->verbose(1,"Found no chapterid for $pkg{rootpack}\n");
-            }
-        } else {
-            $pkg{chapter} = "99_Not_In_Modulelist";
-            $self->verbose(1,"Found no chapter for $pkg{rootpack}\n");
-        }
-
-
         # XXX need to split progress tracking from logging -- dagolden, 2011-08-13
         $self->verbose(2,".") if !($i % 16);
         if ($MAINTAIN_SYMLINKTREE) {
             my $bymod = "$MLROOT/../../modules/".
                 "by-module/$pkg{rootpack}/$pkg{filenameonly}";
-            my $bycat = "$MLROOT/../../modules/".
-                "by-category/$pkg{chapter}/$pkg{rootpack}/$pkg{filenameonly}";
+
             if ($self->{OPT}{symlinkinventory}) {
                 # maybe once a day is enough
             } else {
-                next PACKAGE if -e $bymod and -e $bycat;
+                next PACKAGE if -e $bymod;
             }
 
             $self->chdir_ln_chdir($MLROOT,
@@ -838,25 +793,6 @@ sub rewrite01 {
             $self->chdir_ln_chdir($MLROOT,
                                   "../../../authors/id/$userdir",
                                   "../../modules/by-module/$pkg{rootpack}/$pkg{userid}",
-                                  \@symlinklog,
-                                 );
-            $self->chdir_ln_chdir($MLROOT,
-                                  "../../../../authors/id/$pkg{dist}",
-                                  "../../modules/by-category/$pkg{chapter}".
-                                  "/$pkg{rootpack}/$pkg{filenameonly}",
-                                  \@symlinklog,
-                                 );
-            $self->chdir_ln_chdir($MLROOT,
-                                  "../../../../authors/id/$pkg{readme}",
-                                  "../../modules/by-category/$pkg{chapter}".
-                                  "/$pkg{rootpack}/$pkg{readmefn}",
-                                  \@symlinklog,
-                                 )
-                if -f $pkg{readme};
-            $self->chdir_ln_chdir($MLROOT,
-                                  "../../../../authors/id/$userdir",
-                                  "../../modules/by-category/$pkg{chapter}".
-                                  "/$pkg{rootpack}/$pkg{userid}",
                                   \@symlinklog,
                                  );
         }
@@ -1219,7 +1155,6 @@ sub rewrite06 {
     my $date = HTTP::Date::time2str();
     my $dbh = $self->connect;
     my @query       = (
-        qq{SELECT mods.modid, mods.userid, 'm' FROM mods},
         qq{SELECT primeur.package, primeur.userid, 'f' FROM primeur},
         qq{SELECT perms.package, perms.userid, 'c' FROM perms},
     );
@@ -1237,8 +1172,7 @@ sub rewrite06 {
     }
     my $header = sprintf qq{File:        06perms.txt
 Description: CSV file of upload permission to the CPAN per namespace
-    best-permission is one of "m" for "modulelist", "f" for
-    "first-come", "c" for "co-maint"
+    best-permission is one of "f" for "first-come", "c" for "co-maint"
 Columns:     package,userid,best-permission
 Line-Count:  %d
 Written-By:  %s

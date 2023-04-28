@@ -569,6 +569,29 @@ sub normalize_version {
     my $sdv = $dv->stringify($v,1); # second argument prevents ticks
     $Logger->log("result of normalize_version: $sdv");
 
+    # If the author wrote
+    #
+    #   $VERSION = 0.000001
+    #
+    # ...instead of...
+    #
+    #   $VERSION = '0.000001'
+    #
+    # ...then when we eval the version value, we get a number.  That's bad,
+    # because we lose fidelity.  Sometimes this only means that 1.100 becomes
+    # 1.1, but the worse case is when a version like 0.000001 becomes 1e-06,
+    # which can't be turned into a version object with version->new.
+    #
+    # When the stringified version looks like scientific notation, we return a
+    # JSON error blob, the same way parse_version does for other version
+    # problems, so that examine_pkg can report it to the author instead of
+    # silently skipping the file.
+    #
+    # -- rjbs, 2023-04-28
+    if ($sdv =~ /\A[0-9](?:\.[0-9]+)?e[-+]?[0-9]+\z/a) {
+        return JSON::to_json({ numeric_literal => $sdv });
+    }
+
     return $v if $v eq "undef";
     return $v if $v =~ /^\{.*\}$/; # JSON object
     $v =~ s/^\s+//;

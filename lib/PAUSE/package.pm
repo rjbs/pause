@@ -279,6 +279,10 @@ sub examine_pkg {
       if ($err->{openerr}) {
           # TODO: get $err->{openerr} back in here, I guess?
           $ctx->abort_indexing_package($self, PKGERROR('version_openerr'));
+      } elsif ($err->{numeric_literal}) {
+          $ctx->abort_indexing_package($self, PKGERROR('version_numeric_literal', {
+            version => $err->{numeric_literal},
+          }));
       } else {
           # TODO: get $err->{line} back in here, I guess?
           $ctx->abort_indexing_package($self, PKGERROR('version_parse'));

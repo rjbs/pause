@@ -29,7 +29,7 @@ jobs:
         # -- rjbs, 2023-05-05
         run: |
           cpanm Log::Dispatchouli@2.023
-          cpanm Mojolicious@8.73
+          cpanm Mojolicious@8.66
       - name: Install prereqs (cpan)
         # This could probably be made more efficient by looking at what it's
         # installing via cpanm that could, instead, be installed from apt.  I

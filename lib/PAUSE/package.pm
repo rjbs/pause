@@ -275,7 +275,7 @@ sub examine_pkg {
   # Parser problem
 
   if ($pp->{version} && $pp->{version} =~ /^\{.*\}$/) { # JSON parser error
-      my $err = JSON::jsonToObj($pp->{version});
+      my $err = JSON::from_json($pp->{version});
       if ($err->{openerr}) {
           # TODO: get $err->{openerr} back in here, I guess?
           $ctx->abort_indexing_package($self, PKGERROR('version_openerr'));

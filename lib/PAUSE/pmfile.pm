@@ -539,13 +539,13 @@ sub parse_version {
                     }
                     if ($@) {
                         warn sprintf("reval failed: err[%s] for eval[%s]",
-                                      JSON::objToJson($err,{pretty => 1}),
+                                      JSON::to_json($err,{pretty => 1}),
                                       $eval,
                                     );
-                        $v = JSON::objToJson($err);
+                        $v = JSON::to_json($err);
                     }
                 } else {
-                    $v = JSON::objToJson({ openerr => $err });
+                    $v = JSON::to_json({ openerr => $err });
                 }
             }
             if (defined $v) {
